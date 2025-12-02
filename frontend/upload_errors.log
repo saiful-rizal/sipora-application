@@ -1,0 +1,104 @@
+[02-Dec-2025 04:45:11 UTC] Koneksi loaded from: D:\laragon\www\siporaweb\frontend/koneksi.php
+[02-Dec-2025 04:45:11 UTC] === UPLOAD PROCESS STARTED ===
+[02-Dec-2025 04:45:11 UTC] POST data: Array
+(
+    [kata_kunci] => hai
+    [turnitin_percentage] => 10
+    [turnitin] => 1
+    [abstrak] => hai
+    [id_prodi] => 2
+    [id_divisi] => 2
+    [id_tema] => 10
+    [year_id] => 9
+    [id_user] => 10
+    [judul] => hai
+    [id_jurusan] => 7
+)
+
+[02-Dec-2025 04:45:11 UTC] FILES data: Array
+(
+    [turnitin_file] => Array
+        (
+            [name] => 15. Linked List ok.pdf
+            [full_path] => 15. Linked List ok.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\Users\DELL\AppData\Local\Temp\php6140.tmp
+            [error] => 0
+            [size] => 4992207
+        )
+
+    [file_utama] => Array
+        (
+            [name] => 15. Linked List ok.pdf
+            [full_path] => 15. Linked List ok.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\Users\DELL\AppData\Local\Temp\php6383.tmp
+            [error] => 0
+            [size] => 4992207
+        )
+
+)
+
+[02-Dec-2025 04:45:11 UTC] === DATA DARI ANDROID ===
+[02-Dec-2025 04:45:11 UTC] Posisi - Tema: 10, Jurusan: 7, Prodi: 2
+[02-Dec-2025 04:45:11 UTC] Posisi - Divisi: 2, Tahun: 9
+[02-Dec-2025 04:45:11 UTC] Turnitin: '10' -> 10
+[02-Dec-2025 04:45:11 UTC] Android tahun mapping: Position 9 -> year_id 210 -> Tahun 2017
+[02-Dec-2025 04:45:11 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'id_prodi' in 'where clause' in D:\laragon\www\siporaweb\frontend\upload_mobile.php:227
+Stack trace:
+#0 D:\laragon\www\siporaweb\frontend\upload_mobile.php(227): mysqli->prepare('SELECT id_divis...')
+#1 D:\laragon\www\siporaweb\frontend\upload_mobile.php(250): getValidDivisiId(24, Object(mysqli))
+#2 {main}
+  thrown in D:\laragon\www\siporaweb\frontend\upload_mobile.php on line 227
+[02-Dec-2025 04:48:07 UTC] Koneksi loaded from: D:\laragon\www\siporaweb\frontend/koneksi.php
+[02-Dec-2025 04:48:07 UTC] === UPLOAD PROCESS STARTED ===
+[02-Dec-2025 04:48:07 UTC] POST data: Array
+(
+    [kata_kunci] => hai
+    [turnitin_percentage] => 10
+    [turnitin] => 1
+    [abstrak] => hai
+    [id_prodi] => 2
+    [id_divisi] => 3
+    [id_tema] => 9
+    [year_id] => 8
+    [id_user] => 10
+    [judul] => hai
+    [id_jurusan] => 6
+)
+
+[02-Dec-2025 04:48:07 UTC] FILES data: Array
+(
+    [turnitin_file] => Array
+        (
+            [name] => 871-877.pdf
+            [full_path] => 871-877.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\Users\DELL\AppData\Local\Temp\php144C.tmp
+            [error] => 0
+            [size] => 406281
+        )
+
+    [file_utama] => Array
+        (
+            [name] => 871-877.pdf
+            [full_path] => 871-877.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\Users\DELL\AppData\Local\Temp\php14AB.tmp
+            [error] => 0
+            [size] => 406281
+        )
+
+)
+
+[02-Dec-2025 04:48:07 UTC] === DATA DARI ANDROID ===
+[02-Dec-2025 04:48:07 UTC] Posisi - Tema: 9, Jurusan: 6, Prodi: 2
+[02-Dec-2025 04:48:07 UTC] Posisi - Divisi: 3, Tahun: 8
+[02-Dec-2025 04:48:07 UTC] Turnitin: '10' -> 10
+[02-Dec-2025 04:48:07 UTC] Android tahun mapping: Position 8 -> year_id 209 -> Tahun 2018
+[02-Dec-2025 04:48:07 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'id_prodi' in 'where clause' in D:\laragon\www\siporaweb\frontend\upload_mobile.php:227
+Stack trace:
+#0 D:\laragon\www\siporaweb\frontend\upload_mobile.php(227): mysqli->prepare('SELECT id_divis...')
+#1 D:\laragon\www\siporaweb\frontend\upload_mobile.php(250): getValidDivisiId(21, Object(mysqli))
+#2 {main}
+  thrown in D:\laragon\www\siporaweb\frontend\upload_mobile.php on line 227

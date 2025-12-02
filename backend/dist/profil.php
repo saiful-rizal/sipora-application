@@ -12,22 +12,26 @@ include 'header.php';
 include 'sidebar.php';
 
 // Ambil data user berdasarkan session login
-$id_user = $_SESSION['user_id'];
+ $id_user = $_SESSION['user_id'];
 
-$stmt = $pdo->prepare("SELECT * FROM users WHERE id_user = ?");
-$stmt->execute([$id_user]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+ $stmt = $pdo->prepare("SELECT * FROM users WHERE id_user = ?");
+ $stmt->execute([$id_user]);
+ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Ambil data foto profil dari tabel user_profile
-$stmt = $pdo->prepare("SELECT * FROM user_profile WHERE id_user = ?");
-$stmt->execute([$id_user]);
-$profile = $stmt->fetch(PDO::FETCH_ASSOC);
+ $stmt = $pdo->prepare("SELECT * FROM user_profile WHERE id_user = ?");
+ $stmt->execute([$id_user]);
+ $profile = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Jika belum ada record di user_profile, buat dulu
 if (!$profile) {
   $pdo->prepare("INSERT INTO user_profile (id_user) VALUES (?)")->execute([$id_user]);
   $profile = ['foto_profil' => null];
 }
+
+// Variabel untuk menyimpan pesan notifikasi
+ $notification_message = '';
+ $notification_type = '';
 
 // Proses upload foto profil
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ganti_foto'])) {
@@ -38,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ganti_foto'])) {
     $allowed = ['jpg', 'jpeg', 'png'];
 
     if (!in_array($file_ext, $allowed)) {
-      echo "<script>alert('Format file tidak diizinkan! Gunakan JPG/PNG.');</script>";
+      $notification_message = 'Format file tidak diizinkan! Gunakan JPG/PNG.';
+      $notification_type = 'danger';
     } else {
       $new_name = 'profile_' . $id_user . '.' . $file_ext;
       $upload_dir = __DIR__ . '/uploads/profil/';
@@ -56,10 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ganti_foto'])) {
       if (move_uploaded_file($file_tmp, $upload_path)) {
         $stmt = $pdo->prepare("UPDATE user_profile SET foto_profil = ? WHERE id_user = ?");
         $stmt->execute([$new_name, $id_user]);
-        echo "<script>alert('Foto profil berhasil diperbarui!'); window.location.href='profil.php';</script>";
-        exit;
+        $notification_message = 'Foto profil berhasil diperbarui!';
+        $notification_type = 'success';
       } else {
-        echo "<script>alert('Gagal mengunggah file.');</script>";
+        $notification_message = 'Gagal mengunggah file.';
+        $notification_type = 'danger';
       }
     }
   }
@@ -84,6 +90,50 @@ if (!$user) {
   <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="shortcut icon" href="assets/images/favicon.png" />
+  
+  <!-- Custom CSS untuk notifikasi tengah -->
+  <style>
+    .notification-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      width: 350px;
+      max-width: 90%;
+    }
+    
+    .toast {
+      opacity: 1 !important;
+      min-height: 80px;
+    }
+    
+    .toast-body {
+      font-size: 16px;
+      padding: 15px;
+    }
+    
+    .toast.success {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .toast.danger {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    .notification-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9998;
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
@@ -170,6 +220,21 @@ if (!$user) {
   <?php include 'footer.php'; ?>
 </div>
 
+<!-- Overlay untuk notifikasi -->
+<div class="notification-overlay" id="notificationOverlay"></div>
+
+<!-- Container untuk notifikasi -->
+<div class="notification-container">
+  <div class="toast align-items-center <?= $notification_type ?>" role="alert" aria-live="assertive" aria-atomic="true" id="notificationToast">
+    <div class="d-flex">
+      <div class="toast-body">
+        <?= $notification_message ?>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edit Profil -->
 <div class="modal fade" id="editProfilModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -248,5 +313,51 @@ if (!$user) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Tampilkan notifikasi jika ada pesan
+  document.addEventListener('DOMContentLoaded', function() {
+    const notificationMessage = '<?= $notification_message ?>';
+    
+    if (notificationMessage) {
+      const notificationToast = document.getElementById('notificationToast');
+      const notificationOverlay = document.getElementById('notificationOverlay');
+      
+      // Tampilkan overlay
+      notificationOverlay.style.display = 'block';
+      
+      // Tampilkan toast
+      const toast = new bootstrap.Toast(notificationToast, {
+        autohide: false
+      });
+      toast.show();
+      
+      // Sembunyikan overlay dan toast saat tombol close diklik
+      document.querySelector('.btn-close').addEventListener('click', function() {
+        notificationOverlay.style.display = 'none';
+        toast.hide();
+        
+        // Jika notifikasi sukses, refresh halaman setelah notifikasi ditutup
+        <?php if ($notification_type === 'success'): ?>
+        setTimeout(function() {
+          window.location.href = 'profil.php';
+        }, 500);
+        <?php endif; ?>
+      });
+      
+      // Sembunyikan overlay dan toast saat overlay diklik
+      notificationOverlay.addEventListener('click', function() {
+        notificationOverlay.style.display = 'none';
+        toast.hide();
+        
+        // Jika notifikasi sukses, refresh halaman setelah notifikasi ditutup
+        <?php if ($notification_type === 'success'): ?>
+        setTimeout(function() {
+          window.location.href = 'profil.php';
+        }, 500);
+        <?php endif; ?>
+      });
+    }
+  });
+</script>
 </body>
 </html>

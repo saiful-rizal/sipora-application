@@ -1,28 +1,35 @@
 <?php
+// PERUBAHAN 1: Memulai session untuk menyimpan flag notifikasi
+// Pastikan session_start() dipanggil di paling atas sebelum ada output apapun
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+// AKHIR PERUBAHAN 1
+
 require_once __DIR__ . '/../config/db.php';
 
 // ==========================
 // 🔹 Ambil notifikasi umum
 // ==========================
-$stmtNotif = $pdo->prepare("
+ $stmtNotif = $pdo->prepare("
   SELECT * 
   FROM notifikasi 
   WHERE user_id = 1 
   ORDER BY waktu DESC 
   LIMIT 5
 ");
-$stmtNotif->execute();
-$notifs = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
+ $stmtNotif->execute();
+ $notifs = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
 
 // Jumlah notifikasi belum dibaca
-$jumlahBelumDibaca = $pdo
+ $jumlahBelumDibaca = $pdo
   ->query("SELECT COUNT(*) FROM notifikasi WHERE user_id = 1 AND status='unread'")
   ->fetchColumn();
 
 // ==========================
 // 🔹 Cek dokumen pending
 // ==========================
-$cekPending = $pdo->query("
+ $cekPending = $pdo->query("
   SELECT COUNT(*) 
   FROM dokumen d 
   JOIN master_status_dokumen s ON d.status_id = s.status_id
@@ -32,7 +39,7 @@ $cekPending = $pdo->query("
 // ==========================
 // 🔹 Cek dokumen selesai (opsional tambahan)
 // ==========================
-$cekSelesai = $pdo->query("
+ $cekSelesai = $pdo->query("
   SELECT COUNT(*) 
   FROM dokumen d 
   JOIN master_status_dokumen s ON d.status_id = s.status_id
@@ -77,7 +84,8 @@ $cekSelesai = $pdo->query("
   </li>
 </ul>
 
- <ul class="navbar-nav navbar-nav-right">
+
+    <ul class="navbar-nav navbar-nav-right">
 
       <!-- 🔔 NOTIFIKASI DROPDOWN -->
       <li class="nav-item dropdown">
@@ -348,8 +356,11 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // 🔹 Peringatan Dokumen Pending
-  <?php if ($cekPending > 0): ?>
+  // PERUBAHAN 2: Logika notifikasi popup yang diperbaiki
+  // Popup hanya akan muncul jika:
+  // 1. Ada dokumen pending ($cekPending > 0)
+  // 2. Belum pernah ditampilkan di sesi ini (!isset($_SESSION['pending_review_notified']))
+  <?php if ($cekPending > 0 && !isset($_SESSION['pending_review_notified'])): ?>
     Swal.fire({
       title: '📄 Ada <?= $cekPending; ?> dokumen menunggu review!',
       text: 'Silakan periksa dokumen mahasiswa di halaman Dokumen.',
@@ -361,7 +372,12 @@ document.addEventListener("DOMContentLoaded", function() {
         window.location.href = 'tabel_dokumen.php';
       }
     });
+
+    // PERUBAHAN 3: Set flag di session agar tidak muncul lagi
+    <?php $_SESSION['pending_review_notified'] = true; ?>
   <?php endif; ?>
+  // AKHIR PERUBAHAN 2 & 3
+
 });
 </script>
 

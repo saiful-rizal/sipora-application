@@ -33,7 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
         $_SESSION['email'] = $user['email'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['login_time'] = time();
-
+    // --- FIX: TAMBAH id_user BIAR FORM_ADMIN BISA BACA ---
+        $_SESSION['id_user'] = $user['id_user'];
         if ($remember) {
           setcookie('username', $username, time() + (86400 * 30), "/");
         }
@@ -1089,11 +1090,9 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
   <!-- Registration success overlay (opening) -->
   <div id="registerSuccessModal" class="register-success-overlay" style="display:none;">
     <div class="register-success-card" role="dialog" aria-modal="true" aria-labelledby="registerSuccessTitle">
-      <h2 id="registerSuccessTitle">Pendaftaran Berhasil 🎉</h2>
+      <h2 id="registerSuccessTitle">Pendaftaran Berhasil</h2>
       <p id="registerSuccessMessage">Akun Anda berhasil didaftarkan dan sedang menunggu persetujuan admin. Silakan cek email Anda untuk konfirmasi.</p>
       <div class="register-success-actions">
-        <button id="goToLoginBtn" class="btn btn-primary">Masuk Sekarang</button>
-        <button id="closeSuccessBtn" class="btn btn-outline">Tutup</button>
       </div>
     </div>
   </div>
@@ -1375,7 +1374,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       if (fullname.length < 3) {
         nameTaken = false;
         warning.classList.remove('hidden');
-        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Nama minimal 3 karakter</span>';
+        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Masukan Username</span>';
         updateRegisterButtonState();
         return false;
       }
@@ -1487,6 +1486,16 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       modal.style.display = 'flex';
       // small delay to allow CSS transitions
       setTimeout(() => modal.classList.add('show'), 10);
+
+      // Auto-close after 2 seconds and switch to login tab
+      setTimeout(() => {
+        modal.classList.remove('show');
+        setTimeout(() => {
+          modal.style.display = 'none';
+          // Switch to login tab after modal is hidden
+          switchTab('login');
+        }, 180);
+      }, 2000); // 2 seconds
 
       const closeBtn = document.getElementById('closeSuccessBtn');
       const goLogin = document.getElementById('goToLoginBtn');

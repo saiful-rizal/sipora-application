@@ -161,7 +161,7 @@ $dokumen = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <!-- FILE TURNITIN -->
   <td class="text-center">
     <?php if (!empty($row['turnitin_file'])): ?>
-      <a href="/siporaweb/frontend/<?= $row['turnitin_file']; ?>" 
+      <a href="/siporaweb/frontend/uploads/turnitin/<?= $row['turnitin_file']; ?>" 
          target="_blank"
          class="btn btn-outline-primary btn-sm">
         <i class="mdi mdi-file"></i> Lihat
@@ -194,16 +194,7 @@ $dokumen = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <i class="mdi mdi-eye"></i> Preview
     </button>
 
-    <!-- LIHAT TURNITIN DI AKSI -->
-    <?php if (!empty($row['turnitin_file'])): ?>
-    <a href="/siporaweb/frontend/<?= $row['turnitin_file']; ?>" 
-       target="_blank"
-       class="btn btn-primary btn-sm">
-       <i class="mdi mdi-file-check"></i> Turnitin
-    </a>
-    <?php endif; ?>
-
-    <?php if ($status === 'menunggu review' || $status === 'diperiksa'): ?>
+        <?php if ($status === 'menunggu review' || $status === 'diperiksa'): ?>
       <a href="proses_dokumen.php?id=<?= $row['dokumen_id']; ?>&aksi=approve" 
          class="btn btn-success btn-sm">
          <i class="mdi mdi-check"></i> Approve
@@ -307,7 +298,7 @@ $dokumen = $stmt->fetchAll(PDO::FETCH_ASSOC);
    PREVIEW DOKUMEN
 ============================= */
 function previewDokumen(file) {
-    let url = "/siporaweb/frontend/preview_dokumen.php?file=" + file;
+    let url = "/siporaweb/frontend/uploads/documents/" + file;
     document.getElementById("iframePreview").src = url;
     new bootstrap.Modal(document.getElementById("modalPreview")).show();
 }
