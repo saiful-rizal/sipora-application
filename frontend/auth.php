@@ -2,170 +2,248 @@
 session_start();
 require_once __DIR__ . '/includes/config.php';
 
+// Fungsi untuk membersihkan input
 function clean_input($data) {
-  return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
+// Fungsi untuk memvalidasi email SSO
 function is_sso_email($email) {
-  return preg_match('/\.ac\.id$/', $email);
+    return preg_match('/\.ac\.id$/', $email);
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'login') {
-  $username = clean_input($_POST['username']);
-  $password = clean_input($_POST['password']);
-  $remember = isset($_POST['remember']) ? 1 : 0;
+// Fungsi untuk menghasilkan token CSRF
+function generate_csrf_token() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
 
-  try {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username LIMIT 1");
+// Generate CSRF token untuk digunakan dalam form
+ $csrf_token = generate_csrf_token();
+
+// Proses login
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'login') {
+    // Verifikasi CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $login_error = "Permintaan tidak valid. Silakan coba lagi.";
+    } else {
+        $username = clean_input($_POST['username']);
+        $password = clean_input($_POST['password']);
+        $remember = isset($_POST['remember']) ? 1 : 0;
+
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username LIMIT 1");
+            $stmt->execute(['username' => $username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                if ($user['status'] === 'pending') {
+                    $login_error = "Akun Anda masih menunggu persetujuan admin. Silakan coba lagi nanti.";
+                } elseif ($user['status'] === 'rejected') {
+                    $login_error = "Akun Anda ditolak oleh admin. Hubungi admin untuk informasi lebih lanjut.";
+                } elseif (!is_sso_email($user['email'])) {
+                    $login_error = "Akses ditolak! Hanya pengguna dengan email SSO (.ac.id) yang diizinkan.";
+                } elseif (password_verify($password, $user['password_hash'])) {
+                    // Regenerasi ID sesi untuk mencegah session fixation
+                    session_regenerate_id(true);
+                    
+                    $_SESSION['user_id'] = $user['id_user'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['email'] = $user['email'];
+                    $_SESSION['role'] = $user['role'];
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['id_user'] = $user['id_user'];
+                    
+                    if ($remember) {
+                        // Set cookie dengan opsi keamanan
+                        setcookie('username', $username, [
+                            'expires' => time() + (86400 * 30),
+                            'path' => '/',
+                            'domain' => '',
+                            'secure' => isset($_SERVER['HTTPS']),
+                            'httponly' => true,
+                            'samesite' => 'Strict'
+                        ]);
+                    }
+
+                    if ($user['role'] == 'admin') {
+                        header("Location: ../backend/dist/index.php");
+                    } else {
+                        header("Location: dashboard.php");
+                    }
+                    exit();
+                } else {
+                    $login_error = "Username atau password salah.";
+                }
+            } else {
+                $login_error = "Akun tidak ditemukan.";
+            }
+        } catch (PDOException $e) {
+            error_log("Login error: " . $e->getMessage());
+            $login_error = "Terjadi kesalahan koneksi ke database.";
+        }
+    }
+}
+
+// Proses registrasi
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'register') {
+    // Verifikasi CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $register_error = "Permintaan tidak valid. Silakan coba lagi.";
+    } else {
+        $nama = trim($_POST['nama_lengkap']);
+        $nim = trim($_POST['nomor_induk']);
+        $username = clean_input($_POST['username']);
+        $email = clean_input($_POST['email']);
+        $password = clean_input($_POST['password']);
+        $confirm_password = clean_input($_POST['confirmPassword']);
+        
+        // Normalisasi untuk perbandingan
+        $normalizedFullname = strtolower(trim($nama));
+        $normalizedEmail = strtolower(trim($email));
+        $normalizedUsername = strtolower(trim($username));
+
+        // Validasi input
+        if (empty($nama) || strlen($nama) < 3) {
+            $register_error = "Nama lengkap harus diisi dan minimal 3 karakter.";
+        } elseif (empty($nim) || strlen($nim) < 5) {
+            $register_error = "Nomor induk harus diisi dan minimal 5 karakter.";
+        } elseif (empty($username) || strlen($username) < 3) {
+            $register_error = "Username harus diisi dan minimal 3 karakter.";
+        } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            $register_error = "Username hanya boleh mengandung huruf, angka, dan underscore.";
+        } elseif (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $register_error = "Email tidak valid.";
+        } elseif (!is_sso_email($email)) {
+            $register_error = "Gunakan email kampus (.ac.id) untuk mendaftar.";
+        } elseif (empty($password) || strlen($password) < 8) {
+            $register_error = "Password minimal 8 karakter.";
+        } elseif ($password !== $confirm_password) {
+            $register_error = "Password dan konfirmasi tidak sama.";
+        } else {
+            try {
+                // Gunakan transaksi untuk memastikan integritas data
+                $pdo->beginTransaction();
+                
+                // Periksa duplikasi dengan case-insensitive
+                $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = :email OR LOWER(username) = :username OR LOWER(nama_lengkap) = :nama_lengkap LIMIT 1");
+                $stmt->execute(['email' => $normalizedEmail, 'username' => $normalizedUsername, 'nama_lengkap' => $normalizedFullname]);
+                $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($existing) {
+                    // Deteksi duplikasi yang lebih informatif
+                    $existingEmail = isset($existing['email']) ? strtolower(trim($existing['email'])) : '';
+                    $existingUsername = isset($existing['username']) ? strtolower(trim($existing['username'])) : '';
+                    $existingFullname = isset($existing['nama_lengkap']) ? strtolower(trim($existing['nama_lengkap'])) : '';
+
+                    if ($existingEmail === $normalizedEmail && $existingUsername === $normalizedUsername && $existingFullname === $normalizedFullname) {
+                        $register_error = "Nama, email, dan username sudah terdaftar.";
+                    } elseif ($existingFullname === $normalizedFullname && $existingEmail === $normalizedEmail && $existingUsername !== $normalizedUsername) {
+                        $register_error = "Nama & email sudah terdaftar.";
+                    } elseif ($existingFullname === $normalizedFullname && $existingUsername === $normalizedUsername && $existingEmail !== $normalizedEmail) {
+                        $register_error = "Nama & username sudah terdaftar.";
+                    } elseif ($existingEmail === $normalizedEmail && $existingUsername === $normalizedUsername) {
+                        $register_error = "Email dan username sudah terdaftar.";
+                    } elseif ($existingFullname === $normalizedFullname) {
+                        $register_error = "Nama lengkap sudah terdaftar.";
+                    } elseif ($existingEmail === $normalizedEmail) {
+                        $register_error = "Email sudah terdaftar.";
+                    } elseif ($existingUsername === $normalizedUsername) {
+                        $register_error = "Username sudah terdaftar.";
+                    } else {
+                        $register_error = "Email atau username sudah terdaftar.";
+                    }
+                    $pdo->rollBack();
+                } else {
+                    // Hash password dengan algoritma yang aman
+                    $hashed_password = password_hash($password, PASSWORD_ARGON2ID);
+                    $role = 'mahasiswa';
+                    $status = "pending";
+
+                    $insert = $pdo->prepare("
+                        INSERT INTO users (nama_lengkap, nim, email, username, password_hash, role, status, created_at)
+                        VALUES (:nama_lengkap, :nim, :email, :username, :password_hash, :role, :status, NOW())
+                    ");
+                    
+                    $insert->execute([
+                        'nama_lengkap' => $nama,
+                        'nim' => $nim,
+                        'email' => $email,
+                        'username' => $username,
+                        'password_hash' => $hashed_password,
+                        'role' => $role,
+                        'status' => $status
+                    ]);
+                    
+                    // Commit transaksi jika semua berhasil
+                    $pdo->commit();
+                    $register_success = "Registrasi berhasil! Akun Anda sedang menunggu persetujuan admin sebelum bisa login.";
+                }
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                error_log('Registration error: ' . $e->getMessage());
+                if ($e->getCode() === '23000') { // SQLSTATE for integrity constraint violation
+                    $register_error = 'Gagal mendaftar. Data yang Anda masukkan telah digunakan.';
+                } else {
+                    $register_error = "Terjadi kesalahan database saat mendaftar.";
+                }
+            }
+        }
+    }
+}
+
+// Proses logout
+if (isset($_GET['logout'])) {
+    // Hapus semua data sesi
+    $_SESSION = [];
+    
+    // Hapus cookie sesi
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    
+    // Hancurkan sesi
+    session_destroy();
+    
+    // Hapus cookie username
+    setcookie('username', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'domain' => '',
+        'secure' => isset($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
+    
+    header("Location: index.php");
+    exit();
+}
+
+// Proses remember me
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
+    $username = $_COOKIE['username'];
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username AND status = 'approved'");
     $stmt->execute(['username' => $username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user) {
-      if ($user['status'] === 'pending') {
-        $login_error = "Akun Anda masih menunggu persetujuan admin. Silakan coba lagi nanti.";
-      } elseif ($user['status'] === 'rejected') {
-        $login_error = "Akun Anda ditolak oleh admin. Hubungi admin untuk informasi lebih lanjut.";
-      } elseif (!is_sso_email($user['email'])) {
-        $login_error = "Akses ditolak! Hanya pengguna dengan email SSO (.ac.id) yang diizinkan.";
-      } elseif (password_verify($password, $user['password_hash'])) {
+    if ($user && is_sso_email($user['email'])) {
+        // Regenerasi ID sesi untuk keamanan
+        session_regenerate_id(true);
+        
         $_SESSION['user_id'] = $user['id_user'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['login_time'] = time();
-    // --- FIX: TAMBAH id_user BIAR FORM_ADMIN BISA BACA ---
-        $_SESSION['id_user'] = $user['id_user'];
-        if ($remember) {
-          setcookie('username', $username, time() + (86400 * 30), "/");
-        }
-
-        if ($user['role'] == 'admin') {
-          header("Location: ../backend/dist/index.php");
-        } else {
-          header("Location: dashboard.php");
-        }
+        header("Location: home.php");
         exit();
-      } else {
-        $login_error = "Username atau password salah.";
-      }
-    } else {
-      $login_error = "Akun tidak ditemukan.";
     }
-  } catch (PDOException $e) {
-    $login_error = "Terjadi kesalahan koneksi ke database.";
-  }
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'register') {
-  $nama = trim($_POST['nama_lengkap']);
-  $nim = trim($_POST['nomor_induk']);
-  // keep the original cleaned values for storage/display but normalize for comparisons
-  $username = clean_input($_POST['username']);
-  $email = clean_input($_POST['email']);
-  $normalizedFullname = strtolower(trim($nama));
-  $normalizedEmail = strtolower(trim($email));
-  $normalizedUsername = strtolower(trim($username));
-  $password = clean_input($_POST['password']);
-  $confirm_password = clean_input($_POST['confirmPassword']);
-
-  if (!is_sso_email($email)) {
-    $register_error = "Gunakan email kampus (.ac.id) untuk mendaftar.";
-  } elseif ($password !== $confirm_password) {
-    $register_error = "Password dan konfirmasi tidak sama.";
-  } else {
-    try {
-      // Use case-insensitive check to prevent duplicate accounts differing only by case
-      $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = :email OR LOWER(username) = :username OR LOWER(nama_lengkap) = :nama_lengkap LIMIT 1");
-      $stmt->execute(['email' => $normalizedEmail, 'username' => $normalizedUsername, 'nama_lengkap' => $normalizedFullname]);
-      $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-
-      if ($existing) {
-        // More helpful duplicate detection (email or username)
-        $existingEmail = isset($existing['email']) ? strtolower(trim($existing['email'])) : '';
-        $existingUsername = isset($existing['username']) ? strtolower(trim($existing['username'])) : '';
-        $existingFullname = isset($existing['nama_lengkap']) ? strtolower(trim($existing['nama_lengkap'])) : '';
-
-        if ($existingEmail === $normalizedEmail && $existingUsername === $normalizedUsername && $existingFullname === $normalizedFullname) {
-          $register_error = "Nama, email, dan username sudah terdaftar.";
-        } elseif ($existingFullname === $normalizedFullname && $existingEmail === $normalizedEmail && $existingUsername !== $normalizedUsername) {
-          $register_error = "Nama & email sudah terdaftar.";
-        } elseif ($existingFullname === $normalizedFullname && $existingUsername === $normalizedUsername && $existingEmail !== $normalizedEmail) {
-          $register_error = "Nama & username sudah terdaftar.";
-        } elseif ($existingEmail === $normalizedEmail && $existingUsername === $normalizedUsername) {
-          $register_error = "Email dan username sudah terdaftar.";
-        } elseif ($existingFullname === $normalizedFullname) {
-          $register_error = "Nama lengkap sudah terdaftar.";
-        } elseif ($existingEmail === $normalizedEmail) {
-          $register_error = "Email sudah terdaftar.";
-        } elseif ($existingUsername === $normalizedUsername) {
-          $register_error = "Username sudah terdaftar.";
-        } else {
-            $register_error = "Email atau username sudah terdaftar.";
-        }
-      } else {
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $role = 'mahasiswa';
-        $status = "pending";
-
-        $insert = $pdo->prepare("
-          INSERT INTO users (nama_lengkap, nim, email, username, password_hash, role, status, created_at)
-          VALUES (:nama_lengkap, :nim, :email, :username, :password_hash, :role, :status, NOW())
-        ");
-        try {
-          $insert->execute([
-          'nama_lengkap' => $nama,
-          'nim' => $nim,
-          'email' => $email,
-          'username' => $username,
-          'password_hash' => $hashed_password,
-          'role' => $role,
-          'status' => $status
-        ]);
-
-        } catch (PDOException $e) {
-          // If the DB has unique constraints, duplicate inserts may still throw.
-          // Provide a friendly error and log the exception.
-          error_log('Registration insert failed: ' . $e->getMessage());
-          if ($e->getCode() === '23000') { // SQLSTATE for integrity constraint violation
-            $register_error = 'Gagal mendaftar akun anda telah digunakan';
-          } else {
-            $register_error = "Terjadi kesalahan database saat mendaftar.";
-          }
-        }
-
-        // successful insert may still have been handled above; only set success if no error
-        if (empty($register_error)) {
-          $register_success = "Registrasi berhasil! Akun Anda sedang menunggu persetujuan admin sebelum bisa login.";
-        }
-      }
-    } catch (PDOException $e) {
-      $register_error = "Terjadi kesalahan database: " . $e->getMessage();
-    }
-  }
-}
-
-if (isset($_GET['logout'])) {
-  session_destroy();
-  setcookie('username', '', time() - 3600, "/");
-  header("Location: index.php");
-  exit();
-}
-
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
-  $username = $_COOKIE['username'];
-  $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username AND status = 'approved'");
-  $stmt->execute(['username' => $username]);
-  $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-  if ($user && is_sso_email($user['email'])) {
-    $_SESSION['user_id'] = $user['id_user'];
-    $_SESSION['username'] = $user['username'];
-    $_SESSION['email'] = $user['email'];
-    $_SESSION['role'] = $user['role'];
-    $_SESSION['login_time'] = time();
-    header("Location: home.php");
-    exit();
-  }
 }
 ?>
 <!DOCTYPE html>
@@ -890,6 +968,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
           
           <form id="loginFormElement" method="POST" action="">
             <input type="hidden" name="action" value="login">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
             
             <div class="form-group">
               <label class="form-label" for="username">Username</label>
@@ -900,7 +979,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
                 class="form-input"
                 placeholder="Masukkan username"
                 required
-                value="<?php echo isset($_COOKIE['username']) ? $_COOKIE['username'] : ''; ?>"
+                value="<?php echo isset($_COOKIE['username']) ? htmlspecialchars($_COOKIE['username']) : ''; ?>"
               >
             </div>
 
@@ -958,6 +1037,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
           
           <form id="registerFormElement" method="POST" action="">
             <input type="hidden" name="action" value="register">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
             
             <div class="form-group">
               <label class="form-label" for="nama_lengkap">Nama Lengkap</label>
@@ -1001,7 +1081,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
               >
               <div id="usernameWarning" class="email-warning hidden">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span>Username minimal 3 karakter</span>
+                <span>Masukan Username anda</span>
               </div>
             </div>
 
@@ -1093,6 +1173,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       <h2 id="registerSuccessTitle">Pendaftaran Berhasil</h2>
       <p id="registerSuccessMessage">Akun Anda berhasil didaftarkan dan sedang menunggu persetujuan admin. Silakan cek email Anda untuk konfirmasi.</p>
       <div class="register-success-actions">
+        <button id="goToLoginBtn" class="btn btn-primary">Masuk</button>
       </div>
     </div>
   </div>
@@ -1248,14 +1329,22 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       const confirm = document.getElementById('confirm_password');
       const registerForm = document.getElementById('registerFormElement');
 
-      if (pwd) pwd.addEventListener('input', checkPasswordMatch);
-      if (confirm) confirm.addEventListener('input', checkPasswordMatch);
+      if (pwd) {
+        pwd.addEventListener('input', function() {
+          checkPasswordMatch();
+        });
+      }
+      
+      if (confirm) {
+        confirm.addEventListener('input', checkPasswordMatch);
+      }
 
       // Prevent submit on mismatch as a safety
       if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
           const pwdVal = document.getElementById('reg_password').value.trim();
           const confVal = document.getElementById('confirm_password').value.trim();
+          
           if (pwdVal !== confVal) {
             e.preventDefault();
             checkPasswordMatch();
@@ -1263,6 +1352,13 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
             showPasswordMismatchModal();
             return false;
           }
+          
+          if (pwdVal.length < 8) {
+            e.preventDefault();
+            alert('Password minimal 8 karakter');
+            return false;
+          }
+          
           return true;
         });
       }
@@ -1328,9 +1424,10 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       const pwd = document.getElementById('reg_password');
       const conf = document.getElementById('confirm_password');
       const pwMismatch = (pwd && conf) ? (pwd.value.trim() !== conf.value.trim()) : false;
+      const weakPassword = pwd ? (pwd.value.trim().length < 8) : true;
 
       if (!submitBtn) return;
-      submitBtn.disabled = usernameTaken || emailTaken || nameTaken || pwMismatch;
+      submitBtn.disabled = usernameTaken || emailTaken || nameTaken || pwMismatch || weakPassword;
       submitBtn.style.opacity = submitBtn.disabled ? 0.6 : 1;
     }
 
@@ -1344,7 +1441,15 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       if (username.length < 3) {
         usernameTaken = false;
         warning.classList.remove('hidden');
-        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Username minimal 3 karakter</span>';
+        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Masukan Username anda</span>';
+        updateRegisterButtonState();
+        return false;
+      }
+      
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        usernameTaken = false;
+        warning.classList.remove('hidden');
+        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Username hanya boleh mengandung huruf, angka, dan underscore</span>';
         updateRegisterButtonState();
         return false;
       }
@@ -1374,7 +1479,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       if (fullname.length < 3) {
         nameTaken = false;
         warning.classList.remove('hidden');
-        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Masukan Username</span>';
+        warning.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Masukan Nama lengkap anda</span>';
         updateRegisterButtonState();
         return false;
       }
@@ -1487,7 +1592,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
       // small delay to allow CSS transitions
       setTimeout(() => modal.classList.add('show'), 10);
 
-      // Auto-close after 2 seconds and switch to login tab
+      // Auto-close after 5 seconds and switch to login tab
       setTimeout(() => {
         modal.classList.remove('show');
         setTimeout(() => {
@@ -1495,15 +1600,9 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['username'])) {
           // Switch to login tab after modal is hidden
           switchTab('login');
         }, 180);
-      }, 2000); // 2 seconds
+      }, 5000); // 5 seconds
 
-      const closeBtn = document.getElementById('closeSuccessBtn');
       const goLogin = document.getElementById('goToLoginBtn');
-
-      if (closeBtn) closeBtn.onclick = () => {
-        modal.classList.remove('show');
-        setTimeout(() => modal.style.display = 'none', 180);
-      };
 
       if (goLogin) goLogin.onclick = () => {
         // close modal then switch to login tab

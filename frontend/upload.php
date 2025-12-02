@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
                     if (!in_array($turnitin_fileExtension, $allowedTurnitinExtensions)) {
                         $upload_error = "File Turnitin hanya boleh berformat PDF, DOC, atau DOCX";
                     } elseif ($turnitin_fileSize > 5242880) { // 5MB
-                        $upload_error = "Ukuran file Turnitin maksimal 5MB";
+                        $upload_error = "Ukuran file Turnitin maksimal 10MB";
                     }
                 }
             }
@@ -568,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
           <div class="file-upload-area" id="fileUploadArea">
             <i class="bi bi-cloud-arrow-up file-upload-icon"></i>
             <div class="file-upload-text">Klik untuk memilih file atau drag & drop</div>
-            <div class="file-upload-subtext">Format yang didukung: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX (Maks. 10MB)</div>
+            <div class="file-upload-subtext">Format yang didukung: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX</div>
             <input type="file" class="file-input" id="fileInput" name="file_dokumen" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" required>
           </div>
           <div class="file-info" id="fileInfo">

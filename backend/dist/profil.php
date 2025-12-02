@@ -91,47 +91,74 @@ if (!$user) {
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="shortcut icon" href="assets/images/favicon.png" />
   
-  <!-- Custom CSS untuk notifikasi tengah -->
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
   <style>
-    .notification-container {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 9999;
-      width: 350px;
-      max-width: 90%;
-    }
-    
-    .toast {
-      opacity: 1 !important;
-      min-height: 80px;
-    }
-    
-    .toast-body {
-      font-size: 16px;
-      padding: 15px;
-    }
-    
-    .toast.success {
-      background-color: #28a745;
-      color: white;
-    }
-    
-    .toast.danger {
-      background-color: #dc3545;
-      color: white;
-    }
-    
-    .notification-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 9998;
+    .invalid-feedback {
       display: none;
+      width: 100%;
+      margin-top: 0.25rem;
+      font-size: 0.875em;
+      color: #dc3545;
+    }
+    
+    .form-control.is-invalid {
+      border-color: #dc3545;
+    }
+    
+    /* Custom SweetAlert2 Blue White Theme */
+    .swal2-popup {
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 123, 0.15);
+    }
+    
+    .swal2-title {
+      color: #0056b3;
+      font-weight: 600;
+    }
+    
+    .swal2-html-container {
+      color: #495057;
+    }
+    
+    .swal2-confirm {
+      background-color: #0056b3 !important;
+      border-radius: 4px;
+    }
+    
+    .swal2-confirm:hover {
+      background-color: #004085 !important;
+    }
+    
+    .swal2-cancel {
+      background-color: #6c757d !important;
+      border-radius: 4px;
+    }
+    
+    .swal2-cancel:hover {
+      background-color: #5a6268 !important;
+    }
+    
+    .swal2-icon.swal2-success {
+      border-color: #28a745;
+      color: #28a745;
+    }
+    
+    .swal2-icon.swal2-error {
+      border-color: #dc3545;
+      color: #dc3545;
+    }
+    
+    .swal2-icon.swal2-warning {
+      border-color: #1657ef;
+      color: #1657ef;
+    }
+    
+    .swal2-icon.swal2-info {
+      border-color: #1657ef;
+      color: #1657ef;
     }
   </style>
 </head>
@@ -220,21 +247,6 @@ if (!$user) {
   <?php include 'footer.php'; ?>
 </div>
 
-<!-- Overlay untuk notifikasi -->
-<div class="notification-overlay" id="notificationOverlay"></div>
-
-<!-- Container untuk notifikasi -->
-<div class="notification-container">
-  <div class="toast align-items-center <?= $notification_type ?>" role="alert" aria-live="assertive" aria-atomic="true" id="notificationToast">
-    <div class="d-flex">
-      <div class="toast-body">
-        <?= $notification_message ?>
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal Edit Profil -->
 <div class="modal fade" id="editProfilModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -279,7 +291,7 @@ if (!$user) {
 <!-- Modal Ubah Password -->
 <div class="modal fade" id="ubahPasswordModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form action="ubah_password.php" method="POST">
+    <form id="ubahPasswordForm" action="ubah_password.php" method="POST">
       <div class="modal-content">
         <div class="modal-header bg-warning text-white">
           <h5 class="modal-title">Ubah Password</h5>
@@ -287,10 +299,13 @@ if (!$user) {
         </div>
         <div class="modal-body">
           <input type="hidden" name="id_user" value="<?= $user['id_user']; ?>">
+          
+          <div id="general-error" class="alert alert-danger d-none"></div>
 
           <div class="mb-3">
             <label>Password Lama</label>
             <input type="password" name="password_lama" class="form-control" required>
+            <div class="invalid-feedback"></div>
           </div>
 
           <div class="mb-3">
@@ -301,6 +316,7 @@ if (!$user) {
           <div class="mb-3">
             <label>Konfirmasi Password Baru</label>
             <input type="password" name="konfirmasi_password" class="form-control" required>
+            <div class="invalid-feedback"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -314,47 +330,226 @@ if (!$user) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Tampilkan notifikasi jika ada pesan
+  // Set default SweetAlert2 configuration with blue white theme
+  Swal.mixin({
+    customClass: {
+      confirmButton: 'btn btn-primary',
+      cancelButton: 'btn btn-secondary'
+    },
+    buttonsStyling: false
+  });
+  
+  // Tampilkan notifikasi SweetAlert2 jika ada pesan
   document.addEventListener('DOMContentLoaded', function() {
-    const notificationMessage = '<?= $notification_message ?>';
+    // Cek parameter URL untuk pesan
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get('msg');
     
-    if (notificationMessage) {
-      const notificationToast = document.getElementById('notificationToast');
-      const notificationOverlay = document.getElementById('notificationOverlay');
+    if (msg) {
+      let title = '';
+      let text = '';
+      let icon = '';
       
-      // Tampilkan overlay
-      notificationOverlay.style.display = 'block';
+      switch(msg) {
+        case 'password_updated':
+          title = 'Berhasil!';
+          text = 'Password berhasil diperbarui.';
+          icon = 'success';
+          break;
+        case 'password_cancelled':
+          title = 'Dibatalkan';
+          text = 'Perubahan password dibatalkan.';
+          icon = 'info';
+          break;
+        case 'wrong_old_password':
+          title = 'Error!';
+          text = 'Password lama yang Anda masukkan tidak sesuai. Silakan coba lagi.';
+          icon = 'error';
+          break;
+        case 'confirm_failed':
+          title = 'Error!';
+          text = 'Password baru dan konfirmasi password tidak cocok!';
+          icon = 'error';
+          break;
+        case 'user_not_found':
+          title = 'Error!';
+          text = 'User tidak ditemukan!';
+          icon = 'error';
+          break;
+      }
       
-      // Tampilkan toast
-      const toast = new bootstrap.Toast(notificationToast, {
-        autohide: false
-      });
-      toast.show();
-      
-      // Sembunyikan overlay dan toast saat tombol close diklik
-      document.querySelector('.btn-close').addEventListener('click', function() {
-        notificationOverlay.style.display = 'none';
-        toast.hide();
+      if (title) {
+        Swal.fire({
+          title: title,
+          text: text,
+          icon: icon,
+          confirmButtonText: 'OK',
+          customClass: {
+            confirmButton: 'btn btn-primary'
+          },
+          buttonsStyling: false
+        }).then(() => {
+          // Hapus parameter URL setelah notifikasi ditutup
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        });
+      }
+    }
+    
+    // Tampilkan notifikasi untuk upload foto
+    <?php if ($notification_message): ?>
+    Swal.fire({
+      title: "<?= $notification_type === 'success' ? 'Berhasil!' : 'Error!' ?>",
+      text: "<?= $notification_message ?>",
+      icon: "<?= $notification_type === 'success' ? 'success' : 'error' ?>",
+      confirmButtonText: 'OK',
+      customClass: {
+        confirmButton: 'btn btn-primary'
+      },
+      buttonsStyling: false
+    }).then(() => {
+      <?php if ($notification_type === 'success'): ?>
+      // Refresh halaman setelah notifikasi sukses ditutup
+      window.location.href = 'profil.php';
+      <?php endif; ?>
+    });
+    <?php endif; ?>
+    
+    // Handle form ubah password
+    const ubahPasswordForm = document.getElementById('ubahPasswordForm');
+    if (ubahPasswordForm) {
+      ubahPasswordForm.addEventListener('submit', function(e) {
+        e.preventDefault();
         
-        // Jika notifikasi sukses, refresh halaman setelah notifikasi ditutup
-        <?php if ($notification_type === 'success'): ?>
-        setTimeout(function() {
-          window.location.href = 'profil.php';
-        }, 500);
-        <?php endif; ?>
-      });
-      
-      // Sembunyikan overlay dan toast saat overlay diklik
-      notificationOverlay.addEventListener('click', function() {
-        notificationOverlay.style.display = 'none';
-        toast.hide();
+        // Reset error messages
+        document.querySelectorAll('.invalid-feedback').forEach(el => {
+          el.textContent = '';
+          el.style.display = 'none';
+        });
+        document.querySelectorAll('.form-control').forEach(el => {
+          el.classList.remove('is-invalid');
+        });
+        document.getElementById('general-error').classList.add('d-none');
         
-        // Jika notifikasi sukses, refresh halaman setelah notifikasi ditutup
-        <?php if ($notification_type === 'success'): ?>
-        setTimeout(function() {
-          window.location.href = 'profil.php';
-        }, 500);
-        <?php endif; ?>
+        // Kirim form dengan AJAX
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            if (data.message === 'confirm') {
+              // Tampilkan konfirmasi SweetAlert
+              Swal.fire({
+                title: "Yakin ingin mengubah password?",
+                text: "Password baru akan langsung menggantikan password lama.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Ya, ubah!",
+                cancelButtonText: "Batal",
+                customClass: {
+                  confirmButton: 'btn btn-primary',
+                  cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  // Kirim konfirmasi
+                  const confirmData = new FormData();
+                  confirmData.append('confirm', 'yes');
+                  confirmData.append('id_user', data.data.id_user);
+                  confirmData.append('password_baru', data.data.password_baru);
+                  
+                  fetch('ubah_password.php', {
+                    method: 'POST',
+                    body: confirmData
+                  })
+                  .then(response => response.json())
+                  .then(result => {
+                    if (result.success) {
+                      // Tutup modal
+                      const modal = bootstrap.Modal.getInstance(document.getElementById('ubahPasswordModal'));
+                      modal.hide();
+                      
+                      // Tampilkan notifikasi sukses
+                      Swal.fire({
+                        title: 'Berhasil!',
+                        text: result.message,
+                        icon: 'success',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                          confirmButton: 'btn btn-primary'
+                        },
+                        buttonsStyling: false
+                      });
+                      
+                      // Reset form
+                      ubahPasswordForm.reset();
+                    } else {
+                      // Tampilkan error umum
+                      document.getElementById('general-error').textContent = result.message;
+                      document.getElementById('general-error').classList.remove('d-none');
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('general-error').textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+                    document.getElementById('general-error').classList.remove('d-none');
+                  });
+                }
+              });
+            } else {
+              // Tutup modal
+              const modal = bootstrap.Modal.getInstance(document.getElementById('ubahPasswordModal'));
+              modal.hide();
+              
+              // Tampilkan notifikasi sukses
+              Swal.fire({
+                title: 'Berhasil!',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'OK',
+                customClass: {
+                  confirmButton: 'btn btn-primary'
+                },
+                buttonsStyling: false
+              });
+              
+              // Reset form
+              ubahPasswordForm.reset();
+            }
+          } else {
+            // Tampilkan error di bawah field yang sesuai
+            if (data.errors) {
+              if (data.errors.general) {
+                document.getElementById('general-error').textContent = data.errors.general;
+                document.getElementById('general-error').classList.remove('d-none');
+              }
+              
+              if (data.errors.password_lama) {
+                const passwordLamaField = document.querySelector('input[name="password_lama"]');
+                passwordLamaField.classList.add('is-invalid');
+                passwordLamaField.nextElementSibling.textContent = data.errors.password_lama;
+                passwordLamaField.nextElementSibling.style.display = 'block';
+              }
+              
+              if (data.errors.konfirmasi_password) {
+                const konfirmasiField = document.querySelector('input[name="konfirmasi_password"]');
+                konfirmasiField.classList.add('is-invalid');
+                konfirmasiField.nextElementSibling.textContent = data.errors.konfirmasi_password;
+                konfirmasiField.nextElementSibling.style.display = 'block';
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('general-error').textContent = 'Kata sandi lama yang Anda masukkan tidak sesuai';
+          document.getElementById('general-error').classList.remove('d-none');
+        });
       });
     }
   });

@@ -306,8 +306,8 @@ if ($score_filter !== 'all') {
         </a>
       </div>
       <div class="filter-actions-clean">
-        <button class="btn-export-clean" onclick="exportData('csv')">
-          <i class="bi bi-download"></i> CSV
+        <button class="btn-export-clean" onclick="exportData('Eksport Excel')">
+          <i class="bi bi-download"></i> Eksport Excel
         </button>
       </div>
     </div>
