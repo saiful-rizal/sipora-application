@@ -252,7 +252,7 @@ if (!$user) {
           <input type="hidden" name="id_user" value="<?= $user['id_user']; ?>">
 
           <div class="alert alert-info" role="alert">
-            <small><i class="mdi mdi-information"></i> Password baru minimal 6 karakter</small>
+            <small><i class="mdi mdi-information"></i> Password baru minimal 8 karakter</small>
           </div>
 
           <!-- Password Lama -->
