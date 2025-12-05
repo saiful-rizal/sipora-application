@@ -2,25 +2,19 @@
 session_start();
 require_once __DIR__ . '/../config/db.php';
 
-// ==================================================
-// 🔒 1. Cek apakah sudah login & role harus admin
-// ==================================================
+// 1. Cek apakah sudah login & role harus admin
 if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../../frontend/auth.php");
     exit;
 }
 
-// ==================================================
-// 🔒 2. Hanya SUPER ADMIN (id_user = 5) yang boleh tambah admin
-// ==================================================
+// 2. Hanya SUPER ADMIN (id_user = 5) yang boleh tambah admin
 if ($_SESSION['id_user'] != 5) {
     header("Location: form_admin.php?error=not_allowed");
     exit;
 }
 
-// ==================================================
-// 🔒 3. Hanya menerima request POST
-// ==================================================
+// 3. Hanya menerima request POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $nama_lengkap = trim($_POST['nama_lengkap']);
@@ -34,17 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
 
-        // ==================================================
-        // 🔒 4. Validasi email harus domain polije.ac.id
-        // ==================================================
+        // 4. Validasi email harus domain polije.ac.id
         if (!str_ends_with(strtolower($email), '@polije.ac.id')) {
             header("Location: form_admin.php?error=invalid_email");
             exit;
         }
 
-        // ==================================================
-        // 🔒 5. Cek duplikasi username atau email
-        // ==================================================
+        // 5. Cek duplikasi username atau email
         $cek = $pdo->prepare("
             SELECT COUNT(*) 
             FROM users 
@@ -61,9 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // ==================================================
-        // 🔒 6. INSERT admin baru (hanya super admin)
-        // ==================================================
+        // 6. INSERT admin baru (hanya super admin)
         $stmt = $pdo->prepare("
             INSERT INTO users (nama_lengkap, nim, email, username, password_hash, role, status)
             VALUES (:nama_lengkap, :nim, :email, :username, :password_hash, :role, :status)

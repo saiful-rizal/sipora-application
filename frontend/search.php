@@ -539,7 +539,6 @@ if (!empty($search_query)) {
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-
         .badge-success { 
             background: linear-gradient(135deg, #d1f7c4 0%, #c8e6c9 100%); 
             color: #2e7d32; 
@@ -788,7 +787,7 @@ if (!empty($search_query)) {
             margin-top: 8px;
         }
 
-        /* Modal Styles */
+        /* Modal Styles - PERBAIKAN SESUAI BROWSER.PHP */
         .document-modal {
             display: none;
             position: fixed;
@@ -798,7 +797,7 @@ if (!empty($search_query)) {
             width: 100%;
             height: 100%;
             background-color: var(--modal-backdrop);
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(5px);
             animation: fadeIn 0.3s ease-out;
         }
 
@@ -818,7 +817,7 @@ if (!empty($search_query)) {
 
         .document-modal-content {
             background: var(--modal-bg);
-            border-radius: 12px;
+            border-radius: 16px;
             box-shadow: var(--modal-shadow);
             width: 100%;
             max-width: 900px;
@@ -828,42 +827,60 @@ if (!empty($search_query)) {
             flex-direction: column;
             overflow: hidden;
             animation: slideUp 0.4s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .document-modal-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--modal-border-color);
+            padding: 1.25rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            background-color: var(--modal-header-bg);
+            background: var(--modal-header-bg);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .document-modal-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 30c0-11.046 8.954-20 20-20s20 8.954 20 20-8.954 20-20 20-20-8.954-20-20zm0 2c9.941 0 18 8.059 18 18s-8.059 18-18 18-18-8.059-18-18-18z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.4;
         }
 
         .document-modal-title {
             font-size: 1.25rem;
             font-weight: 600;
-            color: var(--text-primary);
+            color: white;
             margin: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 80%;
+            position: relative;
+            z-index: 1;
         }
 
         .document-modal-close {
-            background: none;
+            background: rgba(255, 255, 255, 0.15);
             border: none;
             font-size: 1.25rem;
-            color: var(--text-secondary);
+            color: white;
             cursor: pointer;
-            padding: 0.25rem;
+            padding: 0.5rem;
             border-radius: 50%;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
         }
         .document-modal-close:hover {
-            background-color: var(--background-page);
-            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(90deg);
         }
 
         .document-modal-body {
@@ -871,164 +888,298 @@ if (!empty($search_query)) {
             flex-direction: column;
             flex-grow: 1;
             overflow: hidden;
+            background-color: #f9fafb;
         }
 
         .document-detail-tabs {
             display: flex;
-            border-bottom: 1px solid var(--modal-border-color);
-            background-color: var(--background-page);
+            border-bottom: 1px solid var(--border-color);
+            background-color: white;
             flex-shrink: 0;
+            padding: 0 1rem;
         }
 
         .document-detail-tab {
-            padding: 0.75rem 1.25rem;
+            padding: 1rem 1.25rem;
             cursor: pointer;
             font-weight: 500;
             color: var(--text-secondary);
             border-bottom: 3px solid transparent;
-            transition: all 0.2s;
+            transition: all 0.3s;
             font-size: 0.9rem;
+            position: relative;
         }
         .document-detail-tab:hover {
             color: var(--primary-blue);
+            background-color: rgba(0, 88, 228, 0.05);
         }
         .document-detail-tab.active {
             color: var(--primary-blue);
             border-bottom-color: var(--primary-blue);
+            background-color: rgba(0, 88, 228, 0.05);
+        }
+        .document-detail-tab i {
+            margin-right: 0.5rem;
         }
 
         .document-detail-content {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 1.25rem;
+            padding: 1.5rem;
             display: none;
+            background-color: #f9fafb;
         }
         .document-detail-content.active {
             display: block;
         }
 
+        /* Document Summary Card - NEW */
+        .document-summary-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e9f0ff 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0, 88, 228, 0.1);
+        }
+        
+        .document-summary-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+        
+        .document-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #1976d2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .document-title-container {
+            flex-grow: 1;
+        }
+        
+        .document-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+        
+        .document-meta-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        
+        .document-meta-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .document-meta-item i {
+            margin-right: 0.25rem;
+            color: var(--primary-blue);
+            font-size: 0.9rem;
+        }
+        
+        .document-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .document-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .document-description {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-height: 4.5em;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .document-description.expanded {
+            max-height: none;
+        }
+        
+        .document-description-toggle {
+            color: var(--primary-blue);
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .document-description-toggle:hover {
+            text-decoration: underline;
+        }
+
         .detail-container {
             display: flex;
             flex-direction: column;
-            gap: 1.25rem;
+            gap: 1.5rem;
         }
 
         .detail-section {
-            background-color: var(--white);
-            border-radius: 8px;
-            padding: 1rem;
+            background-color: white;
+            border-radius: 12px;
+            padding: 1.25rem;
             box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .detail-section:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
 
         .detail-section-title {
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
         }
         .detail-section-title i {
-            margin-right: 0.5rem;
-            font-size: 1rem;
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+            color: var(--primary-blue);
+            background-color: rgba(0, 88, 228, 0.1);
+            padding: 0.5rem;
+            border-radius: 8px;
         }
 
         .detail-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 0.75rem;
+            gap: 1rem;
         }
         .detail-item {
             display: flex;
             flex-direction: column;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background-color: #f9fafb;
+            transition: all 0.2s;
+        }
+        .detail-item:hover {
+            background-color: #f0f4ff;
         }
         .detail-label {
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
         }
         .detail-value {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-primary);
+            font-weight: 500;
         }
         
         .detail-value.badge {
             align-self: flex-start;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
         }
 
-        .author-list, .keyword-list {
+        .keyword-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .author-card {
-            background-color: var(--background-page);
-            border-radius: 6px;
-            padding: 0.75rem;
-            flex-grow: 1;
-            flex-basis: 150px;
-        }
-        .author-name {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-        }
-        .author-affiliation {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
+            gap: 0.75rem;
         }
         .keyword-badge {
-            background-color: var(--primary-light);
+            background: linear-gradient(135deg, var(--primary-light) 0%, #d4e2ff 100%);
             color: var(--primary-blue);
-            padding: 0.25rem 0.75rem;
+            padding: 0.4rem 0.9rem;
             border-radius: 50px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 88, 228, 0.1);
+            transition: all 0.2s;
+        }
+        .keyword-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 88, 228, 0.15);
         }
 
         .action-buttons {
             display: flex;
-            gap: 0.75rem;
+            gap: 1rem;
             margin-top: 1rem;
+            flex-wrap: wrap;
         }
         .btn-action {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
+            padding: 0.65rem 1.25rem;
+            border-radius: 10px;
             font-weight: 500;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.2s;
-            font-size: 0.9rem;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .btn-action i {
-            font-size: 0.9rem;
+            font-size: 1rem;
         }
         .btn-primary {
-            background-color: var(--primary-blue);
-            color: var(--white);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #1976d2 100%);
+            color: white;
+            border: none;
         }
         .btn-primary:hover {
-            background-color: #0044b3;
-            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 88, 228, 0.3);
+            color: white;
         }
         .btn-secondary {
-            background-color: var(--text-secondary);
-            color: var(--white);
+            background-color: white;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
         .btn-secondary:hover {
-            background-color: #555555;
-            color: var(--white);
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
         }
 
         #documentViewer {
             width: 100%;
             height: 100%;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
         }
         .preview-placeholder {
             display: flex;
@@ -1038,6 +1189,15 @@ if (!empty($search_query)) {
             height: 100%;
             text-align: center;
             color: var(--text-secondary);
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        .preview-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--primary-blue);
+            opacity: 0.7;
         }
 
         @keyframes fadeIn {
@@ -1047,7 +1207,7 @@ if (!empty($search_query)) {
         @keyframes slideUp {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(30px);
             }
             to {
                 opacity: 1;
@@ -1093,6 +1253,13 @@ if (!empty($search_query)) {
             .document-modal-title {
                 max-width: 70%;
             }
+            .document-summary-header {
+                flex-direction: column;
+            }
+            .document-icon {
+                width: 100%;
+                height: 80px;
+            }
         }
 
         @media (max-width: 576px) {
@@ -1130,9 +1297,10 @@ if (!empty($search_query)) {
         </div>
 
         <div class="search-form-section">
-            <form method="GET" action="search.php" class="search-form">
+            <!-- PERUBAHAN: Tambahkan ID pada form dan input -->
+            <form id="searchForm" method="GET" action="search.php" class="search-form">
                 <div class="input-group">
-                    <input type="text" name="q" class="search-input" placeholder="Masukkan kata kunci (judul, abstrak, atau kata kunci dokumen)..." value="<?php echo htmlspecialchars($search_query); ?>">
+                    <input type="text" name="q" id="searchInput" class="search-input" placeholder="Masukkan kata kunci (judul, abstrak, atau kata kunci dokumen)..." value="<?php echo htmlspecialchars($search_query); ?>">
                     <button class="search-button" type="submit">
                         <i class="bi bi-search"></i> Cari
                     </button>
@@ -1333,6 +1501,7 @@ if (!empty($search_query)) {
                     <!-- Tab Content: Pratinjau -->
                     <div class="document-detail-content" id="preview-tab">
                         <div id="documentViewerContainer" class="preview-placeholder">
+                            <i class="bi bi-file-earmark-text"></i>
                             <h4>Pratinjau Dokumen</h4>
                             <p>Memuat pratinjau dokumen...</p>
                         </div>
@@ -1402,7 +1571,7 @@ if (!empty($search_query)) {
             displayDocumentInfo(currentDocumentData);
             loadPreview(currentDocumentData);
 
-            // Fetch full details in background and update the view when available
+            // Fetch full details in background and update view when available
             fetch(`search.php?ajax=get_detail&id=${documentId}`)
                 .then(response => response.json())
                 .then(data => {
@@ -1420,6 +1589,7 @@ if (!empty($search_query)) {
 
         function displayDocumentInfo(doc) {
             const infoContent = document.getElementById('documentInfoContent');
+            document.getElementById('modalTitle').textContent = doc.judul || 'Detail Dokumen';
 
             const formatFileSize = (bytes) => {
                 if (bytes === 0) return '0 Bytes';
@@ -1441,12 +1611,55 @@ if (!empty($search_query)) {
                 });
             };
 
+            // Parse keywords from the kata_kunci field (comma-separated)
             const keywordsList = Array.isArray(doc.keywords) ? doc.keywords : [];
             const keywordsHtml = keywordsList.length > 0 ? keywordsList.map(keyword => 
                 `<span class="keyword-badge">${keyword}</span>`
             ).join('') : '<p class="text-muted">Tidak ada kata kunci</p>';
             
+            // Buat deskripsi singkat untuk ditampilkan di kartu ringkasan
+            let shortDescription = doc.abstrak || 'Tidak ada deskripsi';
+            if (shortDescription.length > 200) {
+                shortDescription = shortDescription.substring(0, 200) + '...';
+            }
+            
             infoContent.innerHTML = `
+                <!-- Kartu Ringkasan Dokumen -->
+                <div class="document-summary-card">
+                    <div class="document-summary-header">
+                        <div class="document-icon">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <div class="document-title-container">
+                            <h3 class="document-title">${doc.judul || 'Tanpa Judul'}</h3>
+                            <div class="document-meta-info">
+                                <div class="document-meta-item">
+                                    <i class="bi bi-person"></i>
+                                    <span>${doc.uploader_name || 'Admin'}</span>
+                                </div>
+                                <div class="document-meta-item">
+                                    <i class="bi bi-calendar3"></i>
+                                    <span>${formatDate(doc.tgl_unggah)}</span>
+                                </div>
+                                <div class="document-meta-item">
+                                    <i class="bi bi-folder"></i>
+                                    <span>${doc.nama_jurusan || '-'}</span>
+                                </div>
+                            </div>
+                            <div class="document-badges">
+                                <span class="document-badge ${doc.status_badge}">${doc.status_name}</span>
+                                ${doc.turnitin ? `<span class="document-badge badge-info">Turnitin: ${doc.turnitin}%</span>` : ''}
+                                <span class="document-badge badge-secondary">${doc.file_type ? doc.file_type.toUpperCase() : '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="document-description" id="documentDescription">
+                        ${shortDescription}
+                    </div>
+                    ${doc.abstrak && doc.abstrak.length > 200 ? 
+                        `<div class="document-description-toggle" onclick="toggleDescription()">Baca selengkapnya</div>` : ''}
+                </div>
+                
                 <div class="detail-container">
                     <!-- Informasi Utama -->
                     <div class="detail-section">
@@ -1551,6 +1764,23 @@ if (!empty($search_query)) {
                 </div>
             `;
         }
+        
+        // Fungsi untuk toggle deskripsi
+        function toggleDescription() {
+            const description = document.getElementById('documentDescription');
+            const toggle = document.querySelector('.document-description-toggle');
+            
+            if (description.classList.contains('expanded')) {
+                description.classList.remove('expanded');
+                let shortText = currentDocumentData.abstrak.substring(0, 200) + '...';
+                description.textContent = shortText;
+                toggle.textContent = 'Baca selengkapnya';
+            } else {
+                description.classList.add('expanded');
+                description.textContent = currentDocumentData.abstrak;
+                toggle.textContent = 'Tampilkan lebih sedikit';
+            }
+        }
 
         function loadPreview(doc) {
             const container = document.getElementById('documentViewerContainer');
@@ -1562,6 +1792,7 @@ if (!empty($search_query)) {
             } else {
                 container.innerHTML = `
                     <div class="preview-placeholder">
+                        <i class="bi bi-file-earmark-arrow-down"></i>
                         <h4>Pratinjau Tidak Tersedia</h4>
                         <p>Jenis file ini tidak dapat ditampilkan. Silakan unduh file untuk melihatnya.</p>
                         <a href="${fileUrl}" download class="btn-action btn-primary">
@@ -1659,6 +1890,15 @@ if (!empty($search_query)) {
                     searchInput.value = keyword;
                     document.querySelector('.search-form').submit();
                 });
+            });
+
+            // PERUBAHAN: Tambahkan event listener untuk input pencarian
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function() {
+                if (this.value.trim() === '') {
+                    // Jika input kosong, arahkan ke halaman pencarian tanpa parameter
+                    window.location.href = 'search.php';
+                }
             });
         });
     </script>

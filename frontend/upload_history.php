@@ -62,7 +62,138 @@ try {
         $filtered_history = array_values($filtered_history);
     }
     
-    // Pagination
+    // ==========================
+    // MODIFIKASI UNTUK EXPORT EXCEL
+    // ==========================
+    // Cek jika ada permintaan untuk export ke Excel
+    if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+        
+        // Set headers untuk Excel download
+        header("Content-Type: application/vnd.ms-excel");
+        header("Content-Disposition: attachment; filename=Riwayat_Upload_" . date('Y-m-d_H-i-s') . ".xls");
+        header("Cache-Control: max-age=0");
+        header("Pragma: public");
+
+        // Mulai output buffering untuk menangkap HTML
+        ob_start();
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                /* Gaya dasar untuk export Excel */
+                table {
+                    border-collapse: collapse;
+                    width: 100%;
+                }
+                th, td {
+                    border: 1px solid #ccc;
+                    padding: 8px;
+                    text-align: left;
+                    white-space: nowrap; /* Mencegah teks panjang pecah baris */
+                }
+                th {
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                    text-align: center;
+                }
+                .header {
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                    text-align: center;
+                }
+                .filter-info, .date-info {
+                    margin-bottom: 10px;
+                    font-size: 12px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">RIWAYAT UPLOAD</div>
+            <div class="filter-info">Filter: 
+                <?php 
+                switch($date_filter) {
+                    case 'all': echo 'Semua'; break;
+                    case 'today': echo 'Hari Ini'; break;
+                    case 'week': echo '7 Hari Terakhir'; break;
+                    case 'month': echo '30 Hari Terakhir'; break;
+                    default: echo 'Semua';
+                }
+                ?>
+            </div>
+            <div class="date-info">Tanggal Export: <?php echo date('d M Y H:i:s'); ?></div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal Upload</th>
+                        <th>Waktu Upload</th>
+                        <th>Judul Dokumen</th>
+                        <th>Tema</th>
+                        <th>Tahun</th>
+                        <th>Status</th>
+                        <th>Skor Turnitin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $no = 1;
+                    if (!empty($filtered_history)) {
+                        foreach ($filtered_history as $item): 
+                            // Format status
+                            $status_id = isset($item['status_id']) ? $item['status_id'] : 1;
+                            $statusText = 'Publish';
+                            switch($status_id) {
+                                case 1: $statusText = 'Menunggu Publikasi'; break;
+                                case 2: $statusText = 'Review'; break;
+                                case 3: $statusText = 'Approved'; break;
+                                case 4: $statusText = 'Rejected'; break;
+                                case 5: $statusText = 'Publish'; break;
+                            }
+                            
+                            // Format turnitin score
+                            $turnitin = isset($item['turnitin']) ? $item['turnitin'] : 0;
+                            $turnitinScore = $turnitin > 0 ? $turnitin . '%' : '-';
+                            
+                            // Format date
+                            $uploadDate = date('d M Y', strtotime($item['upload_date']));
+                            $uploadTime = date('H:i:s', strtotime($item['upload_date']));
+                    ?>
+                            <tr>
+                                <td><?php echo $no++; ?></td>
+                                <td><?php echo $uploadDate; ?></td>
+                                <td><?php echo $uploadTime; ?></td>
+                                <td><?php echo htmlspecialchars($item['judul'] ?? 'Tanpa Judul'); ?></td>
+                                <td><?php echo htmlspecialchars($item['nama_tema'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($item['year_id'] ?? '-'); ?></td>
+                                <td><?php echo $statusText; ?></td>
+                                <td><?php echo $turnitinScore; ?></td>
+                            </tr>
+                        <?php endforeach; 
+                    } else { ?>
+                        <tr>
+                            <td colspan="8" style="text-align: center;">Tidak ada riwayat upload yang sesuai dengan filter yang dipilih.</td>
+                        </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; font-size: 12px; color: #666;">
+                <p>Total aktivitas: <?php echo count($filtered_history); ?></p>
+                <p>Generated by SIPORA on <?php echo date('d M Y H:i:s'); ?></p>
+            </div>
+        </body>
+        </html>
+        <?php
+        // Dapatkan konten HTML dan keluarkan
+        echo ob_get_clean();
+        exit(); // Hentikan eksekusi script agar tidak merender halaman web utama
+    }
+    
+    // Pagination (Hanya dijalankan jika BUKAN export)
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $per_page = 10;
     $total_history = count($filtered_history);
@@ -399,10 +530,14 @@ try {
       }, 300);
     }
 
+    // ==========================
+    // MODIFIKASI UNTUK EXPORT EXCEL
+    // ==========================
     // Export history
     function exportHistory() {
       const dateFilter = '<?php echo $date_filter; ?>';
-      window.location.href = `export_history.php?date=${dateFilter}`;
+      // Arahkan ke halaman yang sama dengan parameter export
+      window.location.href = `?export=excel&date=${dateFilter}`;
     }
 
     // Notification helper

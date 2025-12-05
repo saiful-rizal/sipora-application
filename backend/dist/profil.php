@@ -269,10 +269,10 @@ if (!$user) {
           <div class="mb-3">
             <label class="form-label">Password Baru <span class="text-danger">*</span></label>
             <div class="password-toggle">
-              <input type="password" name="password_baru" id="passwordBaru" class="form-control" required minlength="6">
+              <input type="password" name="password_baru" id="passwordBaru" class="form-control" required minlength="8">
               <i class="mdi mdi-eye-off toggle-icon" onclick="togglePassword('passwordBaru', this)"></i>
             </div>
-            <small class="text-muted">Minimal 6 karakter</small>
+            <small class="text-muted">Minimal 8 karakter</small>
           </div>
 
           <!-- Konfirmasi Password -->
@@ -370,10 +370,10 @@ document.getElementById('formUbahPassword').addEventListener('submit', function(
     return;
   }
   
-  if (passwordBaru.length < 6) {
+  if (passwordBaru.length < 8) {
     Swal.fire({
       title: 'Peringatan!',
-      text: 'Password baru minimal 6 karakter!',
+      text: 'Password baru minimal 8 karakter!',
       icon: 'warning',
       confirmButtonColor: '#ffc107'
     });

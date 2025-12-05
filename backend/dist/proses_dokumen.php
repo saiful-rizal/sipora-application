@@ -79,32 +79,52 @@ if ((isset($_GET['id']) && isset($_GET['aksi'])) || (isset($_POST['id']) && isse
         );
 
         // Kirim email ke uploader
-        $mail = new PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'hildaaprilia087@gmail.com';
-            $mail->Password = 'jktudktuqydjnbnq'; // App password Gmail
-            $mail->SMTPSecure = 'tls';
-            $mail->Port = 587;
+       // Kirim email ke uploader
+$mail = new PHPMailer(true);
+try {
 
-            $mail->setFrom('hildaaprilia087@gmail.com', 'SIPORA Admin');
-            $mail->addAddress($dokumen['email'], $dokumen['nama_lengkap']);
-            $mail->isHTML(false);
+    // Upload Lampiran jika ada file
+    $lampiranPath = null;
+    if (!empty($_FILES['lampiran']['name'])) {
+        $uploadDir = __DIR__ . '/../uploads/';
+        if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
 
-            $mail->Subject = "Status Dokumen Anda: $statusBaruNama";
-            $mail->Body =
-                "Halo {$dokumen['nama_lengkap']},\n\n" .
-                "Dokumen Anda dengan judul '{$dokumen['judul']}' kini berstatus $statusBaruNama.\n\n" .
-                (!empty($catatan) ? "Catatan dari admin:\n{$catatan}\n\n" : "") .
-                "Terima kasih telah menggunakan SIPORA.";
+        $lampiranPath = $uploadDir . time() . "_" . basename($_FILES['lampiran']['name']);
+        move_uploaded_file($_FILES['lampiran']['tmp_name'], $lampiranPath);
+    }
 
-            $mail->send();
-        } catch (Exception $e) {
-            // Tidak fatal jika email gagal
-        }
+    // SMTP email config
+    $mail->isSMTP();
+    $mail->Host = 'smtp.gmail.com';
+    $mail->SMTPAuth = true;
+    $mail->Username = 'hildaaprilia087@gmail.com';
+    $mail->Password = 'jktudktuqydjnbnq'; 
+    $mail->SMTPSecure = 'tls';
+    $mail->Port = 587;
 
+    $mail->setFrom('hildaaprilia087@gmail.com', 'SIPORA Admin');
+    $mail->addAddress($dokumen['email'], $dokumen['nama_lengkap']);
+
+    $mail->Subject = "Status Dokumen Anda: $statusBaruNama";
+    $mail->isHTML(true);
+
+    $mail->Body = "
+        <p>Halo <strong>{$dokumen['nama_lengkap']}</strong>,</p>
+        <p>Dokumen Anda dengan judul <b>{$dokumen['judul']}</b> kini berstatus <b>$statusBaruNama</b>.</p>
+        " . (!empty($catatan) ? "<p><b>Catatan Admin:</b><br>{$catatan}</p>" : "") . "
+        <p>Terima kasih telah menggunakan SIPORA.</p>
+    ";
+
+    // Tambahkan lampiran jika ada
+    if ($lampiranPath) {
+        $mail->addAttachment($lampiranPath);
+    }
+
+    $mail->send();
+
+} catch (Exception $e) {
+    error_log("Mailer Error: " . $mail->ErrorInfo);
+}
         header("Location: tabel_dokumen.php?success=Aksi '$aksi' berhasil diproses");
         exit;
     }

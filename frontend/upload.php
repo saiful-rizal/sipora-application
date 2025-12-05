@@ -77,6 +77,14 @@ try {
 // Handle document upload
  $upload_success = false;
  $upload_error = '';
+ $form_data = []; // Untuk menyimpan data form jika ada error
+
+// Cek apakah ada pesan sukses dari session
+if (isset($_SESSION['upload_success'])) {
+    $upload_success = $_SESSION['upload_success'];
+    // Hapus session agar tidak muncul lagi saat refresh
+    unset($_SESSION['upload_success']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
     try {
@@ -280,6 +288,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
                                   // Jangan ganggu alur upload jika notifikasi gagal
                                   error_log('Notif creation failed: ' . $e->getMessage());
                                 }
+                                
+                                // Simpan status sukses ke session sebelum redirect
+                                $_SESSION['upload_success'] = true;
+                                
+                                // Redirect ke halaman yang sama untuk menghilangkan data POST
+                                header("Location: " . basename(__FILE__));
+                                exit();
                               }
                         }
                     } else {
@@ -287,6 +302,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
                     }
                 }
             }
+        }
+        
+        // Jika ada error, simpan data form untuk ditampilkan kembali
+        if (!empty($upload_error)) {
+            $form_data = [
+                'judul' => $judul,
+                'abstrak' => $abstrak,
+                'kata_kunci' => $kata_kunci,
+                'id_divisi' => $id_divisi,
+                'id_jurusan' => $id_jurusan,
+                'id_prodi' => $id_prodi,
+                'id_tema' => $id_tema,
+                'year_id' => $year_id,
+                'turnitin' => $turnitin
+            ];
         }
     } catch (PDOException $e) {
         $upload_error = "Database error: " . $e->getMessage();
@@ -463,7 +493,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
             </label>
             <input type="text" class="form-control" name="judul" required 
                    placeholder="Masukkan judul dokumen" 
-                   value="<?php echo isset($_POST['judul']) ? htmlspecialchars($_POST['judul']) : ''; ?>">
+                   value="<?php echo isset($form_data['judul']) ? htmlspecialchars($form_data['judul']) : ''; ?>">
           </div>
           <div class="form-group">
   <label class="form-label" for="year_id">
@@ -473,7 +503,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
     <option value="">-- Pilih Tahun --</option>
     <?php foreach ($tahun_data as $tahun): ?>
       <option value="<?php echo $tahun['year_id']; ?>" 
-              <?php echo (isset($_POST['year_id']) && $_POST['year_id'] == $tahun['year_id']) ? 'selected' : ''; ?>>
+              <?php echo (isset($form_data['year_id']) && $form_data['year_id'] == $tahun['year_id']) ? 'selected' : ''; ?>>
         <?php echo htmlspecialchars($tahun['tahun']); ?>
       </option>
     <?php endforeach; ?>
@@ -486,7 +516,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
             Deskripsi Singkat <span class="required">*</span>
           </label>
           <textarea class="form-control" name="abstrak" required 
-                    placeholder="Masukan Deskripsi isi dokumen Anda"><?php echo isset($_POST['abstrak']) ? htmlspecialchars($_POST['abstrak']) : ''; ?></textarea>
+                    placeholder="Masukan Deskripsi isi dokumen Anda"><?php echo isset($form_data['abstrak']) ? htmlspecialchars($form_data['abstrak']) : ''; ?></textarea>
         </div>
 
         <div class="form-group">
@@ -495,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
           </label>
           <input type="text" class="form-control" name="kata_kunci" required 
                  placeholder="Pisahkan dengan koma (contoh: machine learning, data mining, AI)" 
-                 value="<?php echo isset($_POST['kata_kunci']) ? htmlspecialchars($_POST['kata_kunci']) : ''; ?>">
+                 value="<?php echo isset($form_data['kata_kunci']) ? htmlspecialchars($form_data['kata_kunci']) : ''; ?>">
           <small class="text-muted">Masukkan 3-5 kata kunci yang relevan dengan dokumen</small>
         </div>
 
@@ -508,7 +538,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
               <option value="">Pilih Divisi</option>
               <?php foreach ($divisi_data as $divisi): ?>
                 <option value="<?php echo $divisi['id_divisi']; ?>" 
-                        <?php echo (isset($_POST['id_divisi']) && $_POST['id_divisi'] == $divisi['id_divisi']) ? 'selected' : ''; ?>>
+                        <?php echo (isset($form_data['id_divisi']) && $form_data['id_divisi'] == $divisi['id_divisi']) ? 'selected' : ''; ?>>
                   <?php echo htmlspecialchars($divisi['nama_divisi']); ?>
                 </option>
               <?php endforeach; ?>
@@ -522,7 +552,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
               <option value="">Pilih Jurusan</option>
               <?php foreach ($jurusan_data as $jurusan): ?>
                 <option value="<?php echo $jurusan['id_jurusan']; ?>" 
-                        <?php echo (isset($_POST['id_jurusan']) && $_POST['id_jurusan'] == $jurusan['id_jurusan']) ? 'selected' : ''; ?>>
+                        <?php echo (isset($form_data['id_jurusan']) && $form_data['id_jurusan'] == $jurusan['id_jurusan']) ? 'selected' : ''; ?>>
                   <?php echo htmlspecialchars($jurusan['nama_jurusan']); ?>
                 </option>
               <?php endforeach; ?>
@@ -539,7 +569,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
               <option value="">Pilih Program Studi</option>
               <?php foreach ($prodi_data as $prodi): ?>
                 <option value="<?php echo $prodi['id_prodi']; ?>" 
-                        <?php echo (isset($_POST['id_prodi']) && $_POST['id_prodi'] == $prodi['id_prodi']) ? 'selected' : ''; ?>>
+                        <?php echo (isset($form_data['id_prodi']) && $form_data['id_prodi'] == $prodi['id_prodi']) ? 'selected' : ''; ?>>
                   <?php echo htmlspecialchars($prodi['nama_prodi']); ?>
                 </option>
               <?php endforeach; ?>
@@ -553,7 +583,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
               <option value="">Pilih Tema</option>
               <?php foreach ($tema_data as $tema): ?>
                 <option value="<?php echo $tema['id_tema']; ?>" 
-                        <?php echo (isset($_POST['id_tema']) && $_POST['id_tema'] == $tema['id_tema']) ? 'selected' : ''; ?>>
+                        <?php echo (isset($form_data['id_tema']) && $form_data['id_tema'] == $tema['id_tema']) ? 'selected' : ''; ?>>
                   <?php echo htmlspecialchars($tema['nama_tema']); ?>
                 </option>
               <?php endforeach; ?>
@@ -601,7 +631,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
             <div class="input-group">
               <input type="number" class="form-control" name="turnitin" 
                      placeholder="0" min="0" max="100" step="0.1"
-                     value="<?php echo isset($_POST['turnitin']) ? htmlspecialchars($_POST['turnitin']) : ''; ?>">
+                     value="<?php echo isset($form_data['turnitin']) ? htmlspecialchars($form_data['turnitin']) : ''; ?>">
               <span class="input-group-text">%</span>
             </div>
             <small class="text-muted">Masukkan skor persentase kemiripan dari Turnitin (0-100%). Kosongkan jika tidak ada.</small>

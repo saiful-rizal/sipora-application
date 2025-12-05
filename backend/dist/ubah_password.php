@@ -55,10 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Validasi panjang password
-        if (strlen($password_baru) < 6) {
+        if (strlen($password_baru) < 8) {
             echo json_encode([
                 'success' => false, 
-                'message' => 'Password baru minimal 6 karakter!',
+                'message' => 'Password baru minimal 8 karakter!',
                 'field' => 'password_baru'
             ]);
             exit;

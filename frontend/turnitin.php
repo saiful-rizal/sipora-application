@@ -34,7 +34,7 @@ try {
 
 // Keep only published documents (status_id == 5)
  $published_documents = array_filter($all_documents, function($doc) {
-  return isset($doc['status_id']) && (int)$doc['status_id'] === 5;
+    return isset($doc['status_id']) && (int)$doc['status_id'] === 5;
 });
  $all_documents = array_values($published_documents);
 
@@ -67,7 +67,143 @@ if ($score_filter !== 'all') {
     }
 }
 
-// Pagination
+// Re-index array to avoid gaps
+ $filtered_documents = array_values($filtered_documents);
+
+
+// ==========================
+// MODIFIKASI UNTUK EXPORT EXCEL
+// ==========================
+// Cek jika ada permintaan untuk export ke Excel
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    
+    // Set headers untuk Excel download
+    header("Content-Type: application/vnd.ms-excel");
+    header("Content-Disposition: attachment; filename=Laporan_Turnitin_" . date('Y-m-d_H-i-s') . ".xls");
+    header("Cache-Control: max-age=0");
+    header("Pragma: public");
+
+    // Mulai output buffering untuk menangkap HTML
+    ob_start();
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            /* Gaya dasar untuk export Excel */
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            th, td {
+                border: 1px solid #ccc;
+                padding: 8px;
+                text-align: left;
+                white-space: nowrap; /* Mencegah teks panjang pecah baris */
+            }
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+                text-align: center;
+            }
+            .header {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+            .filter-info, .date-info {
+                margin-bottom: 10px;
+                font-size: 12px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">LAPORAN TURNITIN</div>
+        <div class="filter-info">Filter: 
+            <?php 
+            switch($score_filter) {
+                case 'all': echo 'Semua'; break;
+                case 'none': echo 'Tanpa Turnitin'; break;
+                case 'low': echo 'Rendah (0-20%)'; break;
+                case 'medium': echo 'Sedang (21-40%)'; break;
+                case 'high': echo 'Tinggi (>40%)'; break;
+                default: echo 'Semua';
+            }
+            ?>
+        </div>
+        <div class="date-info">Tanggal Export: <?php echo date('d M Y H:i:s'); ?></div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Judul Dokumen</th>
+                    <th>Tema</th>
+                    <th>Tahun</th>
+                    <th>Pengunggah</th>
+                    <th>Divisi</th>
+                    <th>Skor Turnitin</th>
+                    <th>Status</th>
+                    <th>Tanggal Unggah</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php 
+                $no = 1;
+                if (!empty($filtered_documents)) {
+                    foreach ($filtered_documents as $doc): 
+                        // Format status
+                        $statusText = 'Publish';
+                        switch($doc['status_id']) {
+                            case 1: $statusText = 'Menunggu Publikasi'; break;
+                            case 2: $statusText = 'Review'; break;
+                            case 3: $statusText = 'Approved'; break;
+                            case 4: $statusText = 'Rejected'; break;
+                            case 5: $statusText = 'Publish'; break;
+                        }
+                        
+                        // Format turnitin score
+                        $turnitinScore = $doc['turnitin'] > 0 ? $doc['turnitin'] . '%' : '-';
+                        
+                        // Format date
+                        $uploadDate = date('d M Y', strtotime($doc['tgl_unggah']));
+                    ?>
+                        <tr>
+                            <td><?php echo $no++; ?></td>
+                            <td><?php echo htmlspecialchars($doc['judul'] ?? 'Tanpa Judul'); ?></td>
+                            <td><?php echo htmlspecialchars($doc['nama_tema']); ?></td>
+                            <td><?php echo htmlspecialchars($doc['year_id']); ?></td>
+                            <td><?php echo htmlspecialchars($doc['uploader_name']); ?></td>
+                            <td><?php echo htmlspecialchars($doc['nama_divisi']); ?></td>
+                            <td><?php echo $turnitinScore; ?></td>
+                            <td><?php echo $statusText; ?></td>
+                            <td><?php echo $uploadDate; ?></td>
+                        </tr>
+                    <?php endforeach; 
+                } else { ?>
+                    <tr>
+                        <td colspan="9" style="text-align: center;">Tidak ada dokumen yang sesuai dengan filter yang dipilih.</td>
+                    </tr>
+                <?php } ?>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; font-size: 12px; color: #666;">
+            <p>Total dokumen: <?php echo count($filtered_documents); ?></p>
+            <p>Generated by SIPORA on <?php echo date('d M Y H:i:s'); ?></p>
+        </div>
+    </body>
+    </html>
+    <?php
+    // Dapatkan konten HTML dan keluarkan
+    echo ob_get_clean();
+    exit(); // Hentikan eksekusi script agar tidak merender halaman web utama
+}
+
+
+// Pagination (Hanya dijalankan jika BUKAN export)
  $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
  $per_page = 10;
  $total_documents = count($filtered_documents);
@@ -742,10 +878,14 @@ if ($score_filter !== 'all') {
       }, 300);
     }
 
+    // ==========================
+    // MODIFIKASI UNTUK EXPORT EXCEL
+    // ==========================
     // Export functions
     function exportData(format) {
       const scoreFilter = '<?php echo $score_filter; ?>';
-      window.location.href = `export_turnitin.php?format=${format}&score=${scoreFilter}`;
+      // Arahkan ke halaman yang sama dengan parameter export
+      window.location.href = `?export=excel&score=${scoreFilter}`;
     }
 
     function markAllAsRead() {

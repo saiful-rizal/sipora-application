@@ -21,15 +21,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_detail' && isset($_GET['id'])
                      u.username as uploader_name, 
                      u.email as uploader_email,
                      j.nama_jurusan,
-                     p.nama_prodi,
-                     t.nama_tema,
-                     y.tahun
+                     p.nama_prodi
                  FROM dokumen d
                  LEFT JOIN users u ON d.uploader_id = u.id_user
                  LEFT JOIN master_jurusan j ON d.id_jurusan = j.id_jurusan
                  LEFT JOIN master_prodi p ON d.id_prodi = p.id_prodi
-                 LEFT JOIN master_tema t ON d.id_tema = t.id_tema
-                 LEFT JOIN master_tahun y ON d.year_id = y.year_id
             WHERE d.dokumen_id = :document_id
             LIMIT 1
         ");
@@ -69,8 +65,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_detail' && isset($_GET['id'])
                 'uploader_email' => $document['uploader_email'],
                 'nama_jurusan' => $document['nama_jurusan'],
                 'nama_prodi' => $document['nama_prodi'],
-                'nama_tema' => $document['nama_tema'],
-                'tahun' => $document['tahun'],
                 'status_name' => getStatusName($document['status_id']),
                 'status_badge' => getStatusBadge($document['status_id']),
                 'turnitin' => $document['turnitin'],
@@ -83,8 +77,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_detail' && isset($_GET['id'])
                 'updated_at' => $document['tgl_unggah'],
                 'id_jurusan' => $document['id_jurusan'],
                 'id_prodi' => $document['id_prodi'],
-                'id_tema' => $document['id_tema'],
-                'year_id' => $document['year_id'],
                 'uploader_id' => $document['uploader_id']
             ]
         ];
@@ -138,15 +130,11 @@ try {
  $master_data = $uploadModel->getMasterData();
  $jurusan_data = $master_data['jurusan'];
  $prodi_data = $master_data['prodi'];
- $tema_data = $master_data['tema'];
- $tahun_data = $master_data['tahun'];
 
  $filter_jurusan = isset($_GET['filter_jurusan']) ? $_GET['filter_jurusan'] : '';
  $filter_prodi = isset($_GET['filter_prodi']) ? $_GET['filter_prodi'] : '';
- $filter_tahun = isset($_GET['filter_tahun']) ? $_GET['filter_tahun'] : '';
- $filter_tema = isset($_GET['filter_tema']) ? $_GET['filter_tema'] : '';
 
- $documents = $uploadModel->getDocuments($filter_jurusan, $filter_prodi, $filter_tahun, $filter_tema);
+ $documents = $uploadModel->getDocuments($filter_jurusan, $filter_prodi);
 
  $BASE_URL = "uploads/documents/";
 ?>
@@ -805,97 +793,6 @@ try {
             color: var(--text-secondary);
         }
 
-                /* Search and Filter Section */
-        .search-filter-section {
-            margin-bottom: 30px;
-        }
-
-        .custom-search-container {
-            position: relative;
-            display: flex;
-            max-width: 700px;
-            margin: 0 auto 25px auto;
-            border-radius: 50px;
-            border: 1px solid #ced4da;
-            overflow: hidden;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .custom-search-container:focus-within {
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-        }
-        .custom-search-input {
-            flex-grow: 1;
-            padding: 12px 20px 12px 50px;
-            font-size: 1rem;
-            border: none;
-            outline: none;
-        }
-        .custom-search-icon {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .custom-search-button {
-            padding: 0 25px;
-            border: none;
-            background-color: var(--primary-blue);
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .custom-search-button:hover {
-            background-color: #0b5ed7;
-        }
-        
-        /* Tambahan untuk hasil pencarian */
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border-radius: 0 0 12px 12px;
-            box-shadow: var(--shadow-md);
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-        }
-        
-        .search-result-item {
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .search-result-item:hover {
-            background-color: var(--background-page);
-        }
-        
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-        
-        .search-result-title {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-        
-        .search-result-meta {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
         /* --- PERBAIKAN FILTER SECTION --- */
         .filter-section {
             background-color: var(--white);
@@ -933,19 +830,6 @@ try {
             /* PERBAIKAN: Tambahkan z-index tinggi agar dropdown muncul di atas elemen lain */
             z-index: 10;
         }
-
-       /* JURUSAN DIPERPANJANG */
-.filter-group:first-child {
-    flex: 1.20;      /* awalnya 1.1 → dipanjangkan sedikit */
-    min-width: 260px; /* dibuat sedikit lebih panjang */
-}
-
-/* TAHUN DIPERKECIL */
-.filter-group:nth-child(4) {
-    flex: 0.7;        /* tahun dipersempit */
-    min-width: 120px; /* agar lebih kecil dari filter lain */
-}
-
 
         .filter-label {
             display: block;
@@ -1484,7 +1368,7 @@ try {
                 <div class="filter-title">
                     <i class="bi bi-funnel"></i> Filter Dokumen
                 </div>
-                <form method="GET" action="">
+                <form method="GET" action="" id="filterForm">
                     <div class="filter-container">
                         <div class="filter-group">
                             <label class="filter-label" for="filter_jurusan">Jurusan</label>
@@ -1526,35 +1410,13 @@ try {
                                 ?>
                             </select>
                         </div>
-                        <div class="filter-group">
-                            <label class="filter-label" for="filter_tema">Tema</label>
-                            <select class="filter-select" id="filter_tema" name="filter_tema">
-                                <option value="">Semua Tema</option>
-                                <?php foreach ($tema_data as $tema): ?>
-                                    <option value="<?php echo $tema['id_tema']; ?>" <?php echo ($filter_tema == $tema['id_tema']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($tema['nama_tema']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="filter-label" for="filter_tahun">Tahun</label>
-                            <select class="filter-select" id="filter_tahun" name="filter_tahun">
-                                <option value="">Semua Tahun</option>
-                                <?php foreach ($tahun_data as $tahun): ?>
-                                    <option value="<?php echo htmlspecialchars($tahun['year_id']); ?>" <?php echo ($filter_tahun == $tahun['year_id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($tahun['tahun']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
                         <div class="filter-actions">
                             <button type="submit" class="btn-filter">
                                 <i class="bi bi-search"></i> Terapkan
                             </button>
-                            <a href="browser.php" class="btn-reset">
+                            <button type="button" class="btn-reset" id="resetFilters">
                                 <i class="bi bi-arrow-clockwise"></i> Reset
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -1582,9 +1444,9 @@ try {
                     </div>
                     <h3 class="empty-state-title">Tidak ada dokumen ditemukan</h3>
                     <p class="empty-state-description">Coba ubah filter atau kata kunci pencarian Anda.</p>
-                    <a href="browser.php" class="empty-state-action">
+                    <button class="empty-state-action" id="resetFiltersEmpty">
                         <i class="bi bi-arrow-clockwise"></i> Reset Filter
-                    </a>
+                    </button>
                 </div>
             </div>
         <?php else: ?>
@@ -1606,7 +1468,7 @@ try {
                     <div class="document-card" data-title="<?php echo strtolower($judul); ?>" data-description="<?php echo strtolower($abstrak); ?>"
                         data-full-title="<?php echo htmlspecialchars($doc['judul'] ?? 'Tanpa Judul', ENT_QUOTES); ?>" data-full-description="<?php echo htmlspecialchars($doc['abstrak'] ?? 'Tidak ada deskripsi', ENT_QUOTES); ?>"
                         data-uploader-name="<?php echo htmlspecialchars($doc['uploader_name'] ?? 'Admin', ENT_QUOTES); ?>" data-uploader-email="<?php echo htmlspecialchars($doc['uploader_email'] ?? '', ENT_QUOTES); ?>"
-                        data-nama-jurusan="<?php echo htmlspecialchars($doc['nama_jurusan'] ?? '', ENT_QUOTES); ?>" data-nama-prodi="<?php echo htmlspecialchars($doc['nama_prodi'] ?? '', ENT_QUOTES); ?>" data-nama-tema="<?php echo htmlspecialchars($doc['nama_tema'] ?? '', ENT_QUOTES); ?>" data-tahun="<?php echo htmlspecialchars($doc['tahun'] ?? '', ENT_QUOTES); ?>"
+                        data-nama-jurusan="<?php echo htmlspecialchars($doc['nama_jurusan'] ?? '', ENT_QUOTES); ?>" data-nama-prodi="<?php echo htmlspecialchars($doc['nama_prodi'] ?? '', ENT_QUOTES); ?>"
                         data-status-id="<?php echo htmlspecialchars($doc['status_id'] ?? '', ENT_QUOTES); ?>" data-status-name="<?php echo htmlspecialchars(getStatusName($doc['status_id'] ?? 0), ENT_QUOTES); ?>" data-status-badge="<?php echo htmlspecialchars(getStatusBadge($doc['status_id'] ?? 0), ENT_QUOTES); ?>"
                         data-turnitin="<?php echo htmlspecialchars($doc['turnitin'] ?? '', ENT_QUOTES); ?>" data-file-name="<?php echo htmlspecialchars($fileName, ENT_QUOTES); ?>" data-file-size="<?php echo htmlspecialchars($fileSize, ENT_QUOTES); ?>"
                         data-tgl-unggah="<?php echo htmlspecialchars($doc['tgl_unggah'] ?? '', ENT_QUOTES); ?>" data-updated-at="<?php echo htmlspecialchars($doc['updated_at'] ?? '', ENT_QUOTES); ?>" data-id-user="<?php echo htmlspecialchars($doc['id_user'] ?? '', ENT_QUOTES); ?>"
@@ -1645,12 +1507,6 @@ try {
                                     <div class="document-meta-item">
                                         <i class="bi bi-briefcase"></i>
                                         <span><?php echo htmlspecialchars(substr($doc['nama_jurusan'], 0, 15)); ?></span>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (!empty($doc['tahun'])): ?>
-                                    <div class="document-meta-item">
-                                        <i class="bi bi-calendar3"></i>
-                                        <span><?php echo htmlspecialchars($doc['tahun']); ?></span>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -1747,8 +1603,6 @@ try {
             const uploaderEmail = card ? card.dataset.uploaderEmail : '';
             const namaJurusan = card ? card.dataset.namaJurusan : '';
             const namaProdi = card ? card.dataset.namaProdi : '';
-            const namaTema = card ? card.dataset.namaTema : '';
-            const tahun = card ? card.dataset.tahun : '';
             const statusId = card ? card.dataset.statusId : '';
             const statusName = card ? card.dataset.statusName : '';
             const statusBadge = card ? card.dataset.statusBadge : '';
@@ -1770,8 +1624,6 @@ try {
                 uploader_email: uploaderEmail,
                 nama_jurusan: namaJurusan,
                 nama_prodi: namaProdi,
-                nama_tema: namaTema,
-                tahun: tahun,
                 status_id: statusId,
                 status_name: statusName,
                 status_badge: statusBadge,
@@ -1819,8 +1671,6 @@ try {
             const uploaderEmail = card ? card.dataset.uploaderEmail : '';
             const namaJurusan = card ? card.dataset.namaJurusan : '';
             const namaProdi = card ? card.dataset.namaProdi : '';
-            const namaTema = card ? card.dataset.namaTema : '';
-            const tahun = card ? card.dataset.tahun : '';
             const statusId = card ? card.dataset.statusId : '';
             const statusName = card ? card.dataset.statusName : '';
             const statusBadge = card ? card.dataset.statusBadge : '';
@@ -1842,8 +1692,6 @@ try {
                 uploader_email: uploaderEmail,
                 nama_jurusan: namaJurusan,
                 nama_prodi: namaProdi,
-                nama_tema: namaTema,
-                tahun: tahun,
                 status_id: statusId,
                 status_name: statusName,
                 status_badge: statusBadge,
@@ -2027,14 +1875,6 @@ try {
                             <div class="detail-item">
                                 <span class="detail-label">Program Studi</span>
                                 <span class="detail-value">${doc.nama_prodi || '-'}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Tema</span>
-                                <span class="detail-value">${doc.nama_tema || '-'}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Tahun</span>
-                                <span class="detail-value">${doc.tahun || '-'}</span>
                             </div>
                         </div>
                     </div>
@@ -2331,6 +2171,19 @@ try {
                             console.error('Error fetching prodi data:', error);
                         });
                 }
+            });
+            
+            // PERBAIKAN: Event listener untuk tombol reset filter
+            const resetButtons = document.querySelectorAll('#resetFilters, #resetFiltersEmpty');
+            resetButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Reset semua filter
+                    document.getElementById('filter_jurusan').value = '';
+                    document.getElementById('filter_prodi').value = '';
+                    
+                    // Submit form untuk memuat ulang data
+                    document.getElementById('filterForm').submit();
+                });
             });
         });
     </script>
